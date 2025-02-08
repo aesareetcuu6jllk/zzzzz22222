@@ -222,7 +222,7 @@ async def string_session(
         return await Anony.send_message(user_id, f"خطـأ : <code>{str(ex)}</code>")
 
     try:
-        txt = "الخاص بك هنا {0} ✦ كود الجلسـة\n\n<code>{1}</code>\n\nᴀ مستخرج من<a href={2}>@Tepthon</a>\n! <b>ملاحظـة :</b> لا تشارك كود الجلسة لأحد؛ لأنه يستطيع اختراق حسابـك."
+        txt = "الخاص بك هنا {0} ✦ كود الجلسـة\n\n<code>{1}</code>\n\nᴀ مستخرج من<a href={2}>@HELLASUserBot</a>\n! <b>ملاحظـة :</b> لا تشارك كود الجلسة لأحد؛ لأنه يستطيع اختراق حسابـك."
         if telethon:
             string_session = client.session.save()
             await client.send_message(
